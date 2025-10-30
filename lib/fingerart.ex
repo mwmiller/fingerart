@@ -2,8 +2,8 @@ defmodule Fingerart do
   @moduledoc """
   Generate OpenSSH fingerprint random art
   """
-  @max_x 16
   @max_y 8
+  @max_x @max_y * 2
   @modulus @max_x + 1
   @max_index @modulus * (@max_y + 1)
   @start_index div(@max_index, 2)
@@ -19,6 +19,7 @@ defmodule Fingerart do
   def from_string(fpstring) do
     # This could also be done with a pattern match since we know its exact shape
     # I feel like this is better for readability
+
     for fph <- String.split(fpstring, ":") do
       {char, ""} = Integer.parse(fph, 16)
       char
@@ -114,96 +115,134 @@ defmodule Fingerart do
 
   def index_to_coords(index), do: {:error, "improper index #{inspect(index)}"}
 
+  @dir_offset %{
+    ne: -1 * @modulus + 1,
+    e: 1,
+    se: @modulus + 1,
+    s: @modulus,
+    stay: 0,
+    sw: @modulus - 1,
+    w: -1,
+    nw: -1 * @modulus - 1,
+    n: -1 * @modulus
+  }
+
+  defp offset(dir), do: Map.get(@dir_offset, dir)
+
   @doc """
-  Given a current index (0-152) and a direction (0-3) output the
+  Given a current index and a direction (0-3) output the
   index to which the bishop steps
   """
   # Corners
   def next_step(0, dir) do
     case dir do
-      0 -> 0
-      1 -> 1
-      2 -> 17
-      3 -> 18
+      0 -> offset(:stay)
+      1 -> offset(:e)
+      2 -> offset(:s)
+      3 -> offset(:se)
     end
   end
 
   def next_step(@max_x, dir) do
-    case dir do
-      0 -> @max_x - 1
-      1 -> @max_x
-      2 -> @max_x + 16
-      3 -> @max_x + 17
-    end
+    ok =
+      case dir do
+        0 -> :w
+        1 -> :stay
+        2 -> :sw
+        3 -> :s
+      end
+
+    @max_x + offset(ok)
   end
 
   @bottom_left @modulus * @max_y
 
   def next_step(@bottom_left, dir) do
-    case dir do
-      0 -> @bottom_left - 17
-      1 -> @bottom_left - 16
-      2 -> @bottom_left
-      3 -> @bottom_left + 1
-    end
+    ok =
+      case dir do
+        0 -> :n
+        1 -> :ne
+        2 -> :stay
+        3 -> :e
+      end
+
+    @bottom_left + offset(ok)
   end
 
   def next_step(@max_index, dir) do
-    case dir do
-      0 -> @max_index - 18
-      1 -> @max_index - 17
-      2 -> @max_index - 1
-      3 -> @max_index
-    end
+    ok =
+      case dir do
+        0 -> :nw
+        1 -> :n
+        2 -> :w
+        3 -> :stay
+      end
+
+    @max_index + offset(ok)
   end
 
   # Top border
-  def next_step(curr, dir) when div(curr, 17) == 0 do
-    case dir do
-      0 -> curr - 1
-      1 -> curr + 1
-      2 -> curr + 16
-      3 -> curr + 18
-    end
+  def next_step(curr, dir) when div(curr, @modulus) == 0 do
+    ok =
+      case dir do
+        0 -> :w
+        1 -> :e
+        2 -> :sw
+        3 -> :se
+      end
+
+    curr + offset(ok)
   end
 
   # Bottom border
-  def next_step(curr, dir) when div(curr, 17) == 8 do
-    case dir do
-      0 -> curr - 18
-      1 -> curr - 16
-      2 -> curr - 1
-      3 -> curr + 1
-    end
+  def next_step(curr, dir) when div(curr, @modulus) == @max_y do
+    ok =
+      case dir do
+        0 -> :nw
+        1 -> :ne
+        2 -> :w
+        3 -> :e
+      end
+
+    curr + offset(ok)
   end
 
   # Right border
-  def next_step(curr, dir) when rem(curr, 17) == 16 do
-    case dir do
-      0 -> curr - 18
-      1 -> curr - 17
-      2 -> curr + 16
-      3 -> curr + 17
-    end
+  def next_step(curr, dir) when rem(curr, @modulus) == 16 do
+    ok =
+      case dir do
+        0 -> :nw
+        1 -> :n
+        2 -> :sw
+        3 -> :s
+      end
+
+    curr + offset(ok)
   end
 
   # Left border
-  def next_step(curr, dir) when rem(curr, 17) == 0 do
-    case dir do
-      0 -> curr - 17
-      1 -> curr - 16
-      2 -> curr + 17
-      3 -> curr + 18
-    end
+  def next_step(curr, dir) when rem(curr, @modulus) == 0 do
+    ok =
+      case dir do
+        0 -> :n
+        1 -> :ne
+        2 -> :s
+        3 -> :se
+      end
+
+    curr + offset(ok)
   end
 
   # Common middle case
   def next_step(curr, dir) do
-    case dir do
-      0 -> curr - 18
-      1 -> curr - 16
-      2 -> curr + 16
-      3 -> curr + 18
-    end
+    ok =
+      case dir do
+        0 -> :nw
+        1 -> :ne
+        2 -> :sw
+        3 -> :se
+      end
+
+    curr + offset(ok)
   end
 end
