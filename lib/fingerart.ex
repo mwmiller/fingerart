@@ -16,7 +16,7 @@ defmodule Fingerart do
   @doc """
   Produces fingerart from a standard SSH key fingerprint
   """
-  def from_string(fpstring) do
+  def from_string(fpstring, title \\ "") do
     # This could also be done with a pattern match since we know its exact shape
     # I feel like this is better for readability
 
@@ -26,19 +26,46 @@ defmodule Fingerart do
     end
     |> walk_from_charlist([@start_index])
     |> graph_from_walk
-    |> art_from_graph
+    |> art_from_graph(title)
   end
 
-  defp art_from_graph(graph) do
+  defp art_from_graph(graph, title) do
     """
-    #{header_line("")}
+    #{header_line(title)}
     #{graph |> Tuple.to_list() |> gen_art()}
-    #{header_line("")}
+    #{header_line()}
     """
   end
 
-  defp header_line("") do
-    "+" <> String.duplicate("-", @modulus) <> "+"
+  @corner "+"
+  @lineh "-"
+  @linev "|"
+  @obracket "["
+  @cbracket "]"
+
+  defp header_line(title \\ "") do
+    tl = String.length(title)
+
+    middle =
+      cond do
+        tl > 0 and tl <= @modulus - 2 ->
+          pad(@obracket <> title <> @cbracket, @lineh, :right, @modulus - (tl + 2))
+
+        true ->
+          String.duplicate(@lineh, @modulus)
+      end
+
+    @corner <> middle <> @corner
+  end
+
+  defp pad(str, _char, _side, 0), do: str
+
+  defp pad(str, char, :right, n) do
+    pad(str <> char, char, :left, n - 1)
+  end
+
+  defp pad(str, char, :left, n) do
+    pad(char <> str, char, :right, n - 1)
   end
 
   defp gen_art(graph, index \\ 0, lines \\ [])
@@ -49,11 +76,11 @@ defmodule Fingerart do
   end
 
   defp gen_art([ti | rest], 0, lines) do
-    gen_art(rest, 1, [pixel(ti) | ["|" | lines]])
+    gen_art(rest, 1, [pixel(ti) | [@linev | lines]])
   end
 
   defp gen_art([ti | rest], @max_x, lines) do
-    gen_art(rest, 0, ["\n", ["|" | [pixel(ti), lines]]])
+    gen_art(rest, 0, ["\n", [@linev | [pixel(ti), lines]]])
   end
 
   defp gen_art([ti | rest], n, lines) do
