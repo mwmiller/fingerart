@@ -14,20 +14,39 @@ defmodule Fingerart do
   @finish_char "E"
 
   @doc """
-  Produces fingerart from a standard SSH key fingerprint
+  Generate fingerart from a binary.  Strings structured as 16 hex pairs sepearated by colons
+  are intepreted as SSH key fingerprints.  All others are handled rawly.
   """
-  def from_string(fpstring, title \\ "") do
-    # This could also be done with a pattern match since we know its exact shape
-    # I feel like this is better for readability
 
-    for fph <- String.split(fpstring, ":") do
-      {char, ""} = Integer.parse(fph, 16)
-      char
-    end
+  def generate(binary, title \\ "")
+
+  def generate(binary, title) when is_binary(binary) do
+    binary
+    |> string_to_charlist()
     |> walk_from_charlist([@start_index])
     |> graph_from_walk
     |> art_from_graph(title)
   end
+
+  def generate(_, _), do: {:error, "generate/2 requires a binary"}
+
+  # Special case things which look like fingerprint strings
+  def string_to_charlist(
+        <<hp0::binary-2, ":", hp1::binary-2, ":", hp2::binary-2, ":", hp3::binary-2, ":",
+          hp4::binary-2, ":", hp5::binary-2, ":", hp6::binary-2, ":", hp7::binary-2, ":",
+          hp8::binary-2, ":", hp9::binary-2, ":", hp10::binary-2, ":", hp11::binary-2, ":",
+          hp12::binary-2, ":", hp13::binary-2, ":", hp14::binary-2, ":", hp15::binary-2>>
+      ) do
+    [hp0, hp1, hp2, hp3, hp4, hp5, hp6, hp7, hp8, hp9, hp10, hp11, hp12, hp13, hp14, hp15]
+    |> Enum.map(fn hd ->
+      {v, ""} = Integer.parse(hd, 16)
+
+      v
+    end)
+  end
+
+  # Otherwise, just make it a charlist
+  def string_to_charlist(binary), do: :erlang.binary_to_list(binary)
 
   defp art_from_graph(graph, title) do
     """
