@@ -132,12 +132,12 @@ defmodule Fingerart do
   end
 
   # Special case things which look like fingerprint strings
-  def string_to_charlist(
-        <<hp0::binary-2, ":", hp1::binary-2, ":", hp2::binary-2, ":", hp3::binary-2, ":",
-          hp4::binary-2, ":", hp5::binary-2, ":", hp6::binary-2, ":", hp7::binary-2, ":",
-          hp8::binary-2, ":", hp9::binary-2, ":", hp10::binary-2, ":", hp11::binary-2, ":",
-          hp12::binary-2, ":", hp13::binary-2, ":", hp14::binary-2, ":", hp15::binary-2>>
-      ) do
+  defp string_to_charlist(
+         <<hp0::binary-2, ":", hp1::binary-2, ":", hp2::binary-2, ":", hp3::binary-2, ":",
+           hp4::binary-2, ":", hp5::binary-2, ":", hp6::binary-2, ":", hp7::binary-2, ":",
+           hp8::binary-2, ":", hp9::binary-2, ":", hp10::binary-2, ":", hp11::binary-2, ":",
+           hp12::binary-2, ":", hp13::binary-2, ":", hp14::binary-2, ":", hp15::binary-2>>
+       ) do
     [hp0, hp1, hp2, hp3, hp4, hp5, hp6, hp7, hp8, hp9, hp10, hp11, hp12, hp13, hp14, hp15]
     |> Enum.map(fn hd ->
       {v, ""} = Integer.parse(hd, 16)
@@ -147,7 +147,7 @@ defmodule Fingerart do
   end
 
   # Otherwise, just make it a charlist
-  def string_to_charlist(binary), do: :erlang.binary_to_list(binary)
+  defp string_to_charlist(binary), do: :erlang.binary_to_list(binary)
 
   @corner "+"
   @lineh "-"
@@ -324,29 +324,17 @@ defmodule Fingerart do
     build_graph(rest, put_elem(state, i, is))
   end
 
-  def walk_from_charlist([], walk), do: Enum.reverse(walk)
+  defp walk_from_charlist([], walk), do: Enum.reverse(walk)
 
-  def walk_from_charlist([char | rest], [curr | _] = walk) do
+  defp walk_from_charlist([char | rest], [curr | _] = walk) do
     # This is always a short (4 entry) first list
     walk_from_charlist(rest, char_steps(<<char>>, curr) ++ walk)
   end
 
-  def char_steps(<<d4::2, d3::2, d2::2, d1::2>>, start) do
+  defp char_steps(<<d4::2, d3::2, d2::2, d1::2>>, start) do
     Enum.reduce([d1, d2, d3, d4], [start], fn d, [c | _r] = a -> [next_step(c, d) | a] end)
     |> Enum.take(4)
   end
-
-  def coords_to_index({x, y}) when x >= 0 and x <= @max_x and y >= 0 and y <= @max_y do
-    x + @modulus * y
-  end
-
-  def coords_to_index(coords), do: {:error, "improper coordinates #{inspect(coords)}"}
-
-  def index_to_coords(index) when index >= 0 and index <= @max_index do
-    {rem(index, @modulus), div(index, @modulus)}
-  end
-
-  def index_to_coords(index), do: {:error, "improper index #{inspect(index)}"}
 
   @dir_offset %{
     ne: -1 * @modulus + 1,
@@ -362,12 +350,8 @@ defmodule Fingerart do
 
   defp offset(dir), do: Map.get(@dir_offset, dir)
 
-  @doc """
-  Given a current index and a direction (0-3) output the
-  index to which the bishop steps
-  """
   # Corners
-  def next_step(0, dir) do
+  defp next_step(0, dir) do
     case dir do
       0 -> offset(:stay)
       1 -> offset(:e)
@@ -376,7 +360,7 @@ defmodule Fingerart do
     end
   end
 
-  def next_step(@max_x, dir) do
+  defp next_step(@max_x, dir) do
     ok =
       case dir do
         0 -> :w
@@ -390,7 +374,7 @@ defmodule Fingerart do
 
   @bottom_left @modulus * @max_y
 
-  def next_step(@bottom_left, dir) do
+  defp next_step(@bottom_left, dir) do
     ok =
       case dir do
         0 -> :n
@@ -402,7 +386,7 @@ defmodule Fingerart do
     @bottom_left + offset(ok)
   end
 
-  def next_step(@max_index, dir) do
+  defp next_step(@max_index, dir) do
     ok =
       case dir do
         0 -> :nw
@@ -415,7 +399,7 @@ defmodule Fingerart do
   end
 
   # Top border
-  def next_step(curr, dir) when div(curr, @modulus) == 0 do
+  defp next_step(curr, dir) when div(curr, @modulus) == 0 do
     ok =
       case dir do
         0 -> :w
@@ -428,7 +412,7 @@ defmodule Fingerart do
   end
 
   # Bottom border
-  def next_step(curr, dir) when div(curr, @modulus) == @max_y do
+  defp next_step(curr, dir) when div(curr, @modulus) == @max_y do
     ok =
       case dir do
         0 -> :nw
@@ -441,7 +425,7 @@ defmodule Fingerart do
   end
 
   # Right border
-  def next_step(curr, dir) when rem(curr, @modulus) == 16 do
+  defp next_step(curr, dir) when rem(curr, @modulus) == 16 do
     ok =
       case dir do
         0 -> :nw
@@ -454,7 +438,7 @@ defmodule Fingerart do
   end
 
   # Left border
-  def next_step(curr, dir) when rem(curr, @modulus) == 0 do
+  defp next_step(curr, dir) when rem(curr, @modulus) == 0 do
     ok =
       case dir do
         0 -> :n
@@ -467,7 +451,7 @@ defmodule Fingerart do
   end
 
   # Common middle case
-  def next_step(curr, dir) do
+  defp next_step(curr, dir) do
     ok =
       case dir do
         0 -> :nw
