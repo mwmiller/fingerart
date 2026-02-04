@@ -4,7 +4,7 @@ defmodule Fingerart.MixProject do
   def project do
     [
       app: :fingerart,
-      version: "0.1.1",
+      version: "1.0.0",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       description: description(),
@@ -16,7 +16,7 @@ defmodule Fingerart.MixProject do
   end
 
   defp description do
-    "Generate OpenSSH-style fingerprint random art (The Drunken Bishop algorithm) in Elixir."
+    "Generate OpenSSH-style fingerprint (Drunken Bishop) art"
   end
 
   defp package do
